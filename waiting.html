@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+
+<title>Waiting Room</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+
+
+<div class="screen active flex-col-center">
+
+
+<div class="eyebrow">
+Shake for Love
+</div>
+
+
+<h1>
+You're In 🎉
+</h1>
+
+
+<div 
+id="avatar"
+style="
+font-size:70px;
+margin:20px;
+">
+</div>
+
+
+<h2 id="name">
+Player
+</h2>
+
+
+
+<p class="subtext">
+
+Waiting for host to start...
+
+</p>
+
+
+
+<div class="pill">
+
+<span class="dot"></span>
+
+<span id="count">
+0
+</span>
+
+players joined
+
+</div>
+
+
+
+<h3 style="margin-top:30px">
+Players
+
+</h3>
+
+
+<div 
+class="joined-strip"
+id="players">
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+
+<script src="firebase-config.js"></script>
+
+
+
+<script>
+
+
+const params =
+new URLSearchParams(
+window.location.search
+);
+
+
+
+const room =
+params.get("room");
+
+
+const id =
+params.get("id");
+
+
+
+const roomRef =
+db.ref(
+"rooms/"+room
+);
+
+
+
+let myName="";
+let myAvatar="";
+
+
+
+
+// LOAD PLAYER DATA
+
+roomRef
+.child(
+"players/"+id
+)
+.once("value")
+.then(snap=>{
+
+
+let p=snap.val();
+
+
+if(p){
+
+myName=p.name;
+myAvatar=p.avatar;
+
+
+document.getElementById("name")
+.innerHTML=p.name;
+
+
+document.getElementById("avatar")
+.innerHTML=p.avatar;
+
+
+}
+
+
+});
+
+
+
+
+
+
+// SHOW PLAYERS
+
+roomRef
+.child("players")
+.on("value",snap=>{
+
+
+let players=
+snap.val()||{};
+
+
+let list=
+document.getElementById("players");
+
+
+list.innerHTML="";
+
+
+
+let total=
+Object.keys(players).length;
+
+
+document.getElementById("count")
+.innerHTML=total;
+
+
+
+Object.values(players)
+.forEach(p=>{
+
+
+let div=
+document.createElement("div");
+
+
+div.className=
+"joined-chip";
+
+
+div.innerHTML=
+`${p.avatar}
+<span class="name">
+${p.name}
+</span>`;
+
+
+
+list.appendChild(div);
+
+
+
+});
+
+
+});
+
+
+
+
+
+
+// AUTO NAVIGATION
+
+roomRef
+.child("status")
+.on("value",snap=>{
+
+
+let status=
+snap.val();
+
+
+
+if(status==="countdown"){
+
+
+window.location.href=
+`game.html?room=${room}&id=${id}`;
+
+
+
+}
+
+
+
+});
+
+
+
+</script>
+
+
+</body>
+</html>
