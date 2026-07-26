@@ -110,7 +110,21 @@
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  window.scrollTo(0, 0);
+  document.activeElement && document.activeElement.blur();
+
+  // Mobile keyboards close with an animation that can silently re-scroll
+  // the page for several hundred ms after we switch screens. Instead of
+  // guessing one delay, keep snapping back to the top for ~1s so the new
+  // screen is guaranteed to be fully visible without the user scrolling.
+  const resetScroll = ()=>{ window.scrollTo(0,0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; };
+  resetScroll();
+  let ticks = 0;
+  clearInterval(window._screenScrollFix);
+  window._screenScrollFix = setInterval(()=>{
+    resetScroll();
+    ticks++;
+    if(ticks > 20) clearInterval(window._screenScrollFix); // ~1s at 50ms steps
+  }, 50);
 }
 function randomRoomCode(){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
