@@ -102,10 +102,14 @@ const AVATARS = ['💃','🕺','👰','🤵','🥂','💍','🌸','🎩','✨','
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // always snap to the top so the new screen is fully visible
-  // (mobile keyboards closing can otherwise leave the page scrolled down)
-  window.scrollTo(0, 0);
   document.activeElement && document.activeElement.blur();
+  // iOS closes the keyboard with a delayed animation, which can silently
+  // re-scroll the page — so force scroll-to-top on this tick AND again
+  // shortly after, once the keyboard animation has settled.
+  const resetScroll = ()=>{ window.scrollTo(0,0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; };
+  resetScroll();
+  setTimeout(resetScroll, 60);
+  setTimeout(resetScroll, 300);
 }
 
 let roomCode = null, roomRef = null, playerId = null, playerName = '', playerAvatar = '';
@@ -146,6 +150,8 @@ buildAvatarGrid();
 
 /* ---------- single step: room code + name + avatar -> straight into the room ---------- */
 document.getElementById('btnJoinRoom').addEventListener('click', async ()=>{
+  document.getElementById('inputRoomCode').blur();
+  document.getElementById('inputName').blur();
   const code = document.getElementById('inputRoomCode').value.trim().toUpperCase();
   const name = document.getElementById('inputName').value.trim();
   const errEl = document.getElementById('joinError');
