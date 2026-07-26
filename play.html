@@ -321,13 +321,17 @@ function runResults(){
     document.getElementById('resultRank').textContent = `You ranked #${myRank || '-'}`;
     document.getElementById('resultShakes').textContent = `${myShakes} shakes`;
 
-    document.getElementById('resultsLb').innerHTML = sorted.slice(0,10).map(([id, p], i)=>`
-      <div class="lb-row ${id === playerId ? 'me' : ''}">
-        <div class="lb-rank">${i+1}</div>
-        <div class="lb-avatar">${p.avatar}</div>
-        <div class="lb-name">${p.name}</div>
-        <div class="lb-score">${p.shakes||0}</div>
-      </div>`).join('');
+    const maxShakes = Math.max(1, ...sorted.map(([,p])=>p.shakes||0));
+    document.getElementById('resultsLb').innerHTML = sorted.slice(0,10).map(([id, p], i)=>{
+      const pct = Math.round(((p.shakes||0) / maxShakes) * 100);
+      return `
+      <div class="race-row ${id === playerId ? 'me' : ''}">
+        <div class="race-rank">${i+1}</div>
+        <div class="race-label">${p.avatar} ${p.name}</div>
+        <div class="race-track"><div class="race-fill" style="width:${pct}%"></div></div>
+        <div class="race-score">${p.shakes||0}</div>
+      </div>`;
+    }).join('');
   });
 }
 </script>
