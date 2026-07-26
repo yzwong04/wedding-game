@@ -110,21 +110,7 @@
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  document.activeElement && document.activeElement.blur();
-
-  // Mobile keyboards close with an animation that can silently re-scroll
-  // the page for several hundred ms after we switch screens. Instead of
-  // guessing one delay, keep snapping back to the top for ~1s so the new
-  // screen is guaranteed to be fully visible without the user scrolling.
-  const resetScroll = ()=>{ window.scrollTo(0,0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; };
-  resetScroll();
-  let ticks = 0;
-  clearInterval(window._screenScrollFix);
-  window._screenScrollFix = setInterval(()=>{
-    resetScroll();
-    ticks++;
-    if(ticks > 20) clearInterval(window._screenScrollFix); // ~1s at 50ms steps
-  }, 50);
+  window.scrollTo(0, 0);
 }
 function randomRoomCode(){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
@@ -146,8 +132,6 @@ db.ref(".info/serverTimeOffset").on("value", snap=>{ serverOffset = snap.val() |
 function serverNow(){ return Date.now() + serverOffset; }
 
 /* ---------- background music (via hidden YouTube embeds — your two chosen tracks) ---------- */
-// Game/lobby music: https://www.youtube.com/watch?v=s2IKf3Qlt6g
-// Podium music:     https://www.youtube.com/watch?v=teUWsONJkk8
 const GAME_MUSIC_ID = 's2IKf3Qlt6g';
 const PODIUM_MUSIC_ID = 'teUWsONJkk8';
 
@@ -168,7 +152,6 @@ function onYouTubeIframeAPIReady(){
         if(wantGameMusicPlaying) gamePlayer.playVideo();
       },
       onStateChange: (e)=>{
-        // loop the track for the whole party
         if(e.data === YT.PlayerState.ENDED){ gamePlayer.seekTo(0); gamePlayer.playVideo(); }
       }
     }
@@ -179,7 +162,6 @@ function onYouTubeIframeAPIReady(){
     events: {
       onReady: ()=>{ podiumPlayerReady = true; podiumPlayer.setVolume(70); },
       onStateChange: (e)=>{
-        // loop the podium track for as long as the podium stays on screen
         if(e.data === YT.PlayerState.ENDED){ podiumPlayer.seekTo(0); podiumPlayer.playVideo(); }
       }
     }
@@ -213,7 +195,7 @@ btnMusicToggle.addEventListener('click', ()=>{
 /* ---------- create room ---------- */
 document.getElementById('btnCreateRoom').addEventListener('click', ()=>{
   if(!isFirebaseConfigured()) document.getElementById('configWarning').classList.remove('hidden');
-  startMusic(); // one continuous track that keeps playing through the whole party, incl. podium
+  startMusic();
 
   const eventName = document.getElementById('hostGameLabel').value.trim() || "Shake for Love";
   roomCode = randomRoomCode();
@@ -406,7 +388,6 @@ function launchConfetti(){
 document.getElementById('btnNewRound').addEventListener('click', ()=>{
   roomRef.update({ status: 'waiting' });
   resumeGameMusicAfterPodium();
-  // reset all shake counts for a fresh round
   roomRef.child('players').once('value', snap=>{
     const players = snap.val() || {};
     const updates = {};
@@ -416,7 +397,6 @@ document.getElementById('btnNewRound').addEventListener('click', ()=>{
   showScreen('screen-lobby');
 });
 
-// kick off status watcher once room exists
 document.getElementById('btnCreateRoom').addEventListener('click', ()=>{
   setTimeout(watchStatus, 300);
 });
