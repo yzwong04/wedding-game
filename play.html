@@ -6,7 +6,6 @@
 <title>Shake for Love</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  /* keep the join screen (room code + name + avatar) compact so it never needs scrolling */
   #screen-join{ padding-top: 18px; }
   #screen-join .eyebrow{ margin-bottom: 4px; }
   #screen-join h1{ font-size: 24px; margin-bottom: 4px; }
@@ -62,10 +61,8 @@
           <path d="M110,55 C85,8 18,14 18,76 C18,142 80,178 110,202 C140,178 202,142 202,76 C202,14 135,8 110,55 Z" />
         </clipPath>
       </defs>
-      <!-- heart outline -->
       <path d="M110,55 C85,8 18,14 18,76 C18,142 80,178 110,202 C140,178 202,142 202,76 C202,14 135,8 110,55 Z"
             fill="rgba(251,243,231,0.12)" stroke="rgba(251,243,231,0.6)" stroke-width="3"/>
-      <!-- love fill, height controlled by JS -->
       <g clip-path="url(#glassClip)">
         <rect id="fillRect" x="10" y="205" width="200" height="0" fill="url(#loveGrad)"/>
       </g>
@@ -103,13 +100,16 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.activeElement && document.activeElement.blur();
-  // iOS closes the keyboard with a delayed animation, which can silently
-  // re-scroll the page — so force scroll-to-top on this tick AND again
-  // shortly after, once the keyboard animation has settled.
+
   const resetScroll = ()=>{ window.scrollTo(0,0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; };
   resetScroll();
-  setTimeout(resetScroll, 60);
-  setTimeout(resetScroll, 300);
+  let ticks = 0;
+  clearInterval(window._screenScrollFix);
+  window._screenScrollFix = setInterval(()=>{
+    resetScroll();
+    ticks++;
+    if(ticks > 20) clearInterval(window._screenScrollFix);
+  }, 50);
 }
 
 let roomCode = null, roomRef = null, playerId = null, playerName = '', playerAvatar = '';
@@ -123,13 +123,11 @@ function escapeHtml(str){
   return d.innerHTML;
 }
 
-/* ---------- prefill room code from URL ---------- */
 const urlParams = new URLSearchParams(window.location.search);
 if(urlParams.get('room')){
   document.getElementById('inputRoomCode').value = urlParams.get('room').toUpperCase();
 }
 
-/* ---------- avatar grid is built immediately (no separate page/gap) ---------- */
 function buildAvatarGrid(){
   const grid = document.getElementById('avatarGrid');
   grid.innerHTML = '';
@@ -148,7 +146,6 @@ function buildAvatarGrid(){
 }
 buildAvatarGrid();
 
-/* ---------- single step: room code + name + avatar -> straight into the room ---------- */
 document.getElementById('btnJoinRoom').addEventListener('click', async ()=>{
   document.getElementById('inputRoomCode').blur();
   document.getElementById('inputName').blur();
@@ -161,8 +158,6 @@ document.getElementById('btnJoinRoom').addEventListener('click', async ()=>{
   if(!name){ errEl.textContent = 'Enter your name. 请输入你的名字。'; return; }
   if(!playerAvatar){ errEl.textContent = 'Pick an avatar. 请选择头像。'; return; }
 
-  // Must request motion permission directly inside this real tap — iOS silently
-  // blocks the permission prompt if it's requested later from a non-gesture context.
   await requestMotionPermission();
 
   db.ref('rooms/' + code).once('value', snap=>{
@@ -175,7 +170,6 @@ document.getElementById('btnJoinRoom').addEventListener('click', async ()=>{
     playerName = name;
     document.getElementById('waitEventName').textContent = snap.val().eventName || 'Shake for Love';
 
-    // fresh session every time a guest joins — no leftover data from a previous session
     playerId = 'p_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
     roomRef.child('players/' + playerId).set({
@@ -197,7 +191,6 @@ document.getElementById('btnJoinRoom').addEventListener('click', async ()=>{
   }).catch(()=>{ errEl.textContent = 'Could not reach the game — check your connection. 无法连接，请检查网络。'; });
 });
 
-/* ---------- waiting room: live count + full list of who has joined ---------- */
 function listenLobbyCount(){
   roomRef.child('players').on('value', snap=>{
     const players = snap.val() || {};
@@ -216,7 +209,6 @@ function listenLobbyCount(){
   });
 }
 
-/* ---------- react to host-driven status ---------- */
 function watchRoomStatus(){
   roomRef.child('status').on('value', snap=>{
     const status = snap.val();
@@ -224,14 +216,12 @@ function watchRoomStatus(){
     else if(status === 'playing') runPlaying();
     else if(status === 'finished') runResults();
     else if(status === 'waiting' && shakeCount !== 0){
-      // host reset for a new round
       shakeCount = 0;
       showScreen('screen-wait');
     }
   });
 }
 
-/* ---------- motion permission (iOS 13+) ---------- */
 let motionAllowed = false;
 async function requestMotionPermission(){
   if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
@@ -240,7 +230,7 @@ async function requestMotionPermission(){
       motionAllowed = (res === 'granted');
     }catch(e){ motionAllowed = false; }
   } else {
-    motionAllowed = true; // Android / desktop browsers
+    motionAllowed = true;
   }
   if(!motionAllowed){
     document.getElementById('motionPermNote').textContent =
@@ -248,7 +238,6 @@ async function requestMotionPermission(){
   }
 }
 
-/* ---------- countdown ---------- */
 let countdownInterval;
 function runCountdown(){
   showScreen('screen-countdown');
@@ -264,7 +253,6 @@ function runCountdown(){
   });
 }
 
-/* ---------- gameplay: shake detection ---------- */
 let shakeCount = 0;
 let lastShakeTime = 0;
 const SHAKE_THRESHOLD = 15;
@@ -311,7 +299,6 @@ function runPlaying(){
     window.addEventListener('devicemotion', handleMotion);
     motionHandlerAttached = true;
   }
-  // fallback: tap-to-shake for desktop / denied motion permission
   document.getElementById('screen-playing').onclick = ()=>{ if(gameActive) registerShake(); };
 
   roomRef.child('gameEnd').once('value', snap=>{
@@ -328,7 +315,6 @@ function runPlaying(){
     }, 200);
   });
 
-  // live rank while playing
   roomRef.child('players').on('value', snap=>{
     if(!gameActive && shakeCount === 0) return;
     const players = snap.val() || {};
@@ -338,7 +324,6 @@ function runPlaying(){
   });
 }
 
-/* ---------- results ---------- */
 function runResults(){
   showScreen('screen-results');
   roomRef.child('players').once('value', snap=>{
