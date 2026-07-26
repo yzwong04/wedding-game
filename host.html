@@ -36,13 +36,35 @@
     max-width: 460px;
     margin: 0 auto;
   }
+  #screen-lobby .qr-wrap{ padding: 12px; margin: 10px 0; }
+  #screen-lobby #qrcode canvas{ width: 170px !important; height: 170px !important; }
   .joining-live-label{
     font-size: 15px;
     color: var(--blush);
-    margin: 22px 0 4px;
+    margin: 14px 0 4px;
     text-align: center;
   }
-  #screen-lobby .joined-strip{ max-height: 180px; }
+  #screen-lobby .joined-strip{ max-height: 110px; margin: 10px 0; }
+  #screen-lobby .room-code{ font-size: 46px; margin: 2px 0; }
+  #screen-lobby .subtext{ margin-bottom: 10px; }
+
+  /* Extra compaction on shorter windows (laptop preview, small displays) */
+  @media (max-height: 760px){
+    #screen-lobby .qr-wrap{ padding: 8px; margin: 6px 0; }
+    #screen-lobby #qrcode canvas{ width: 130px !important; height: 130px !important; }
+    #screen-lobby .room-code{ font-size: 36px; margin: 0; }
+    #screen-lobby .joining-live-label{ margin: 8px 0 2px; }
+    #screen-lobby .joined-strip{ max-height: 70px; margin: 6px 0; }
+    #screen-lobby .subtext{ margin-bottom: 4px; }
+  }
+
+  #screen-setup .eyebrow{
+    font-size: 22px;
+    letter-spacing: 5px;
+  }
+  #screen-setup h1{
+    font-size: 24px;
+  }
 </style>
 </head>
 <body>
@@ -53,9 +75,7 @@
 
 <div class="screen active wide flex-col-center" id="screen-setup">
   <div class="eyebrow">Shake for Love</div>
-  <h1 style="font-size:34px;">Create the party room <span class="zh">创建派对房间</span></h1>
-  <p class="subtext center">Guests scan the QR with their own phones.<br><span class="zh">宾客用手机扫描二维码加入。</span></p>
-  <div class="card" style="max-width:420px;">
+  <h1>Create the party room <span class="zh">创建派对房间</span></h1>
     <input type="text" id="hostGameLabel" placeholder="Event name (e.g. Mia &amp; Sam's Wedding)">
     <p class="small" style="margin:0 0 16px;">Round length: <strong>60 seconds</strong> <span class="zh">回合时长：60秒</span></p>
     <button class="btn-primary" id="btnCreateRoom">Create Room <span class="zh">创建房间</span></button>
